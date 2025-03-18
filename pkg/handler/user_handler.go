@@ -91,6 +91,7 @@ func DeleteUser(writer http.ResponseWriter, request *http.Request) {
 			// Delete data
 			data.UserTestData = append(data.UserTestData[:i], data.UserTestData[i+1:]...)
 			responseWithJson(writer, http.StatusOK, map[string]string{"message": "User is deleted"})
+			return
 		}
 	}
 	responseWithJson(writer, http.StatusNotFound, map[string]string{"message": "User not found"})
