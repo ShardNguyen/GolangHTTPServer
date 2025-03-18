@@ -1,23 +1,21 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	"testing"
 
-	"github.com/ShardNguyen/GolangCounter/api"
+	"github.com/gorilla/mux"
+
+	"github.com/ShardNguyen/GolangCounter/pkg/handler"
 )
 
 func TestMain(t *testing.T) {
-	server := api.NewServer()
-	mux := http.NewServeMux()
-	// These handle functions takes in a pattern as string and a callback function
-	// This callback function must have http.ResponseWriter and *http.Request
-	mux.HandleFunc("/", server.HandleRoot)
-	mux.HandleFunc("POST /users", server.CreateUser)
-	mux.HandleFunc("GET /users/{id}", server.GetUser)
-	mux.HandleFunc("DELETE /user/{id}", server.DeleteUser)
+	r := mux.NewRouter()
 
-	fmt.Println("Server listening to :8080")
-	// http.ListenAndServe(":8080", mux)
+	r.HandleFunc("/api/user/{id}", handler.GetUser).Methods("GET")
+	r.HandleFunc("/api/users", handler.GetAllUser).Methods("GET")
+	r.HandleFunc("/api/user", handler.CreateUser).Methods("POST")
+	r.HandleFunc("/api/user/{id}", handler.UpdateUser).Methods("PUT")
+	r.HandleFunc("/api/user/{id}", handler.DeleteUser).Methods("DELETE")
+
+	// http.ListenAndServe(":8080", r)
 }
