@@ -7,6 +7,13 @@ type User struct {
 	name string `json:"name"`
 }
 
+func NewUser(id int, name string) *User {
+	u := new(User)
+	u.id = id
+	u.name = name
+	return u
+}
+
 func (u *User) GetID() (int, error) {
 	if u == nil {
 		return 0, errors.New("User is not initialized")
