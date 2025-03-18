@@ -5,6 +5,7 @@ import "github.com/ShardNguyen/GolangCounter/pkg/entity"
 var UserTestData map[int]entity.User
 
 func init() {
+	UserTestData = map[int]entity.User{}
 	UserTestData[1] = *entity.NewUser(1, "Loc")
 	UserTestData[2] = *entity.NewUser(2, "Anh")
 	UserTestData[3] = *entity.NewUser(3, "Sang")

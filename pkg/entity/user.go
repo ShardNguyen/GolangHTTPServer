@@ -3,14 +3,35 @@ package entity
 import "errors"
 
 type User struct {
-	id   int    `json:"id"`
-	name string `json:"name"`
+	id   int
+	name string
+}
+
+func (user *User) ConvertToResponse() (ur UserResponse, err error) {
+	ur = UserResponse{}
+	// Convert ID
+	id, err := user.GetID()
+	if err != nil {
+		return
+	}
+	// Convert Name
+	name, err := user.GetName()
+	if err != nil {
+		return
+	}
+	// Make Response to return
+	ur = UserResponse{
+		Id:   id,
+		Name: name,
+	}
+	return
 }
 
 func NewUser(id int, name string) *User {
 	u := new(User)
 	u.id = id
 	u.name = name
+
 	return u
 }
 
