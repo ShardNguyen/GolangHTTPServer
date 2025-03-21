@@ -10,26 +10,21 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func responseWithJson(writer http.ResponseWriter, status int, object interface{}) {
-	writer.Header().Set("Content-Type", "application/json") // ResponseWriter sets "Content-Type: application/json" in the HTTP header
-	writer.WriteHeader(status)                              // ResponseWriter writes the status of the response into the header
-	json.NewEncoder(writer).Encode(object)                  // ResponseWriter encodes the object into a Json file and adds to the response
+type UserHandler struct {
+	db data.Database
 }
 
-// Basically get the highest ID and add 1 to it
-func generateId(users map[int]entity.User) int {
-	var maxId int
-
-	for id := range users {
-		if id > maxId {
-			maxId = id
-		}
-	}
-
-	return maxId + 1
+func NewUserHandler(db data.Database) *UserHandler {
+	uh := new(UserHandler)
+	uh.db = db
+	return uh
 }
 
-func GetUser(writer http.ResponseWriter, request *http.Request) {
+func (uh UserHandler) SetDB(db data.Database) {
+	uh.db = db
+}
+
+func (uh UserHandler) Get(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request) // Get variables from path and stores it into params
 	id, err := strconv.Atoi(params["id"])
 
@@ -40,8 +35,9 @@ func GetUser(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	// Find user with said ID
-	user, ok := data.UserTestData[id]
-	if !ok {
+	user, err := uh.db.GetUser(id)
+
+	if err != nil {
 		responseWithJson(writer, http.StatusNotFound, map[string]string{"message": "User not found"})
 		return
 	}
@@ -49,18 +45,23 @@ func GetUser(writer http.ResponseWriter, request *http.Request) {
 	// Convert user data to user response data
 	ur, err := user.ConvertToResponse()
 	if err != nil {
-		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "There's an error in getting user's info"})
+		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "There's an error in converting user to user response"})
 		return
 	}
 
 	responseWithJson(writer, http.StatusOK, ur)
 }
 
-func GetAllUser(writer http.ResponseWriter, request *http.Request) {
+func (uh UserHandler) GetAll(writer http.ResponseWriter, request *http.Request) {
 	urSlice := []entity.UserResponse{}
+	userData, err := uh.db.GetAllUsers()
+
+	if err != nil {
+		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "Cannot get user data"})
+	}
 
 	// Convert all user in map to user responses
-	for _, user := range data.UserTestData {
+	for _, user := range userData {
 		ur, err := user.ConvertToResponse()
 
 		if err != nil {
@@ -74,10 +75,10 @@ func GetAllUser(writer http.ResponseWriter, request *http.Request) {
 	responseWithJson(writer, http.StatusOK, urSlice)
 }
 
-func CreateUser(writer http.ResponseWriter, request *http.Request) {
+func (uh UserHandler) Create(writer http.ResponseWriter, request *http.Request) {
 	var ur entity.UserResponse
 	// Read the Json file from the requested side
-	// Decode the said Json file and assign the variables into newUser
+	// Decode the said Json file and assign the variables into the public user response for converting later
 	err := json.NewDecoder(request.Body).Decode(&ur)
 
 	// Error handling: When the Json file from the requested side cannot be assigned into newUser
@@ -86,24 +87,17 @@ func CreateUser(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// Get new ID
-	newID := generateId(data.UserTestData)
-	ur.SetID(newID)
-
-	// Convert response to user data
-	newUser, err := ur.ConvertToUser()
-	if err != nil {
+	// Tell the database to create a user
+	if err := uh.db.CreateUser(&ur); err != nil {
 		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "Cannot convert to user"})
 		return
 	}
 
-	// Add user to the map and respond back with ok status
-	data.UserTestData[newID] = *newUser
 	responseWithJson(writer, http.StatusCreated, ur)
 }
 
 // Basically the same as GetUser but adding a delete function
-func DeleteUser(writer http.ResponseWriter, request *http.Request) {
+func (uh UserHandler) Delete(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, err := strconv.Atoi(params["id"])
 
@@ -113,18 +107,16 @@ func DeleteUser(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// Find if user with said ID exists
-	_, ok := data.UserTestData[id]
-	if !ok {
+	err = uh.db.DeleteUser(id)
+	if err != nil {
 		responseWithJson(writer, http.StatusNotFound, map[string]string{"message": "User not found"})
 		return
 	}
 
-	delete(data.UserTestData, id)
 	responseWithJson(writer, http.StatusOK, map[string]string{"message": "User is deleted"})
 }
 
-func UpdateUser(writer http.ResponseWriter, request *http.Request) {
+func (uh UserHandler) Update(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	id, err := strconv.Atoi(params["id"])
 
@@ -143,23 +135,23 @@ func UpdateUser(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	// Get ID for user conversion
-	ur.SetID(id)
+	err = uh.db.UpdateUser(id, &ur)
 
-	// Find ID of the user to apply the changes
-	_, ok := data.UserTestData[id]
-	if !ok {
+	if err.Error() == "user not found" {
 		responseWithJson(writer, http.StatusNotFound, map[string]string{"message": "User not found"})
 		return
 	}
 
-	// Converting to user
-	edittedUser, err := ur.ConvertToUser()
-	if err != nil {
+	if err.Error() == "cannot edit this user" {
 		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "Cannot edit this user"})
 		return
 	}
 
-	data.UserTestData[id] = *edittedUser
 	responseWithJson(writer, http.StatusOK, ur)
+}
+
+func responseWithJson(writer http.ResponseWriter, status int, object interface{}) {
+	writer.Header().Set("Content-Type", "application/json") // ResponseWriter sets "Content-Type: application/json" in the HTTP header
+	writer.WriteHeader(status)                              // ResponseWriter writes the status of the response into the header
+	json.NewEncoder(writer).Encode(object)                  // ResponseWriter encodes the object into a Json file and adds to the response
 }
