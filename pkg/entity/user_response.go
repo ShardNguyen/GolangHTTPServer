@@ -7,8 +7,8 @@ type UserResponse struct {
 	Name string `json:"name"`
 }
 
-func (ur *UserResponse) ConvertToUser() (u User, err error) {
-	u = User{}
+func (ur *UserResponse) ConvertToUser() (u *User, err error) {
+	u = &User{}
 
 	if ur == nil {
 		err = errors.New("User Response is not detected")
@@ -17,7 +17,6 @@ func (ur *UserResponse) ConvertToUser() (u User, err error) {
 
 	u.SetID(ur.Id)
 	u.SetName(ur.Name)
-
 	return
 }
 

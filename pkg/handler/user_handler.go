@@ -43,15 +43,17 @@ func GetUser(writer http.ResponseWriter, request *http.Request) {
 	user, ok := data.UserTestData[id]
 	if !ok {
 		responseWithJson(writer, http.StatusNotFound, map[string]string{"message": "User not found"})
-	} else {
-		// Convert user data to user response data
-		ur, err := user.ConvertToResponse()
-		if err != nil {
-			responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "There's an error in getting user's info"})
-		} else {
-			responseWithJson(writer, http.StatusOK, ur)
-		}
+		return
 	}
+
+	// Convert user data to user response data
+	ur, err := user.ConvertToResponse()
+	if err != nil {
+		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "There's an error in getting user's info"})
+		return
+	}
+
+	responseWithJson(writer, http.StatusOK, ur)
 }
 
 func GetAllUser(writer http.ResponseWriter, request *http.Request) {
@@ -60,9 +62,11 @@ func GetAllUser(writer http.ResponseWriter, request *http.Request) {
 	// Convert all user in map to user responses
 	for _, user := range data.UserTestData {
 		ur, err := user.ConvertToResponse()
+
 		if err != nil {
 			continue
 		}
+
 		urSlice = append(urSlice, ur)
 	}
 
@@ -94,7 +98,7 @@ func CreateUser(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	// Add user to the map and respond back with ok status
-	data.UserTestData[newID] = newUser
+	data.UserTestData[newID] = *newUser
 	responseWithJson(writer, http.StatusCreated, ur)
 }
 
@@ -113,10 +117,11 @@ func DeleteUser(writer http.ResponseWriter, request *http.Request) {
 	_, ok := data.UserTestData[id]
 	if !ok {
 		responseWithJson(writer, http.StatusNotFound, map[string]string{"message": "User not found"})
-	} else {
-		delete(data.UserTestData, id)
-		responseWithJson(writer, http.StatusOK, map[string]string{"message": "User is deleted"})
+		return
 	}
+
+	delete(data.UserTestData, id)
+	responseWithJson(writer, http.StatusOK, map[string]string{"message": "User is deleted"})
 }
 
 func UpdateUser(writer http.ResponseWriter, request *http.Request) {
@@ -131,6 +136,7 @@ func UpdateUser(writer http.ResponseWriter, request *http.Request) {
 
 	var ur entity.UserResponse
 	err = json.NewDecoder(request.Body).Decode(&ur)
+
 	// Error handling: When the Json file from the requested side cannot be assigned into updateUser
 	if err != nil {
 		responseWithJson(writer, http.StatusBadRequest, map[string]string{"message": "Invalid body"})
@@ -144,12 +150,16 @@ func UpdateUser(writer http.ResponseWriter, request *http.Request) {
 	_, ok := data.UserTestData[id]
 	if !ok {
 		responseWithJson(writer, http.StatusNotFound, map[string]string{"message": "User not found"})
-	} else {
-		if edittedUser, err := ur.ConvertToUser(); err != nil {
-			responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "Cannot edit this user"})
-		} else {
-			data.UserTestData[id] = edittedUser
-			responseWithJson(writer, http.StatusOK, ur)
-		}
+		return
 	}
+
+	// Converting to user
+	edittedUser, err := ur.ConvertToUser()
+	if err != nil {
+		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "Cannot edit this user"})
+		return
+	}
+
+	data.UserTestData[id] = *edittedUser
+	responseWithJson(writer, http.StatusOK, ur)
 }
