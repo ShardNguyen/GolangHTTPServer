@@ -43,17 +43,17 @@ func (uh UserHandler) Get(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	// Convert user data to user response data
-	ur, err := user.ConvertToResponse()
+	up, err := user.ConvertToResponse()
 	if err != nil {
 		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "There's an error in converting user to user response"})
 		return
 	}
 
-	responseWithJson(writer, http.StatusOK, ur)
+	responseWithJson(writer, http.StatusOK, up)
 }
 
 func (uh UserHandler) GetAll(writer http.ResponseWriter, request *http.Request) {
-	urSlice := []entity.UserResponse{}
+	upSlice := []entity.UserPublic{}
 	userData, err := uh.db.GetAllUsers()
 
 	if err != nil {
@@ -62,24 +62,24 @@ func (uh UserHandler) GetAll(writer http.ResponseWriter, request *http.Request) 
 
 	// Convert all user in map to user responses
 	for _, user := range userData {
-		ur, err := user.ConvertToResponse()
+		up, err := user.ConvertToResponse()
 
 		if err != nil {
 			continue
 		}
 
-		urSlice = append(urSlice, ur)
+		upSlice = append(upSlice, up)
 	}
 
 	// Response with OK Status and everything in the user slice
-	responseWithJson(writer, http.StatusOK, urSlice)
+	responseWithJson(writer, http.StatusOK, upSlice)
 }
 
 func (uh UserHandler) Create(writer http.ResponseWriter, request *http.Request) {
-	var ur entity.UserResponse
+	var up entity.UserPublic
 	// Read the Json file from the requested side
 	// Decode the said Json file and assign the variables into the public user response for converting later
-	err := json.NewDecoder(request.Body).Decode(&ur)
+	err := json.NewDecoder(request.Body).Decode(&up)
 
 	// Error handling: When the Json file from the requested side cannot be assigned into newUser
 	if err != nil {
@@ -88,12 +88,12 @@ func (uh UserHandler) Create(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	// Tell the database to create a user
-	if err := uh.db.CreateUser(&ur); err != nil {
+	if err := uh.db.CreateUser(&up); err != nil {
 		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "Cannot convert to user"})
 		return
 	}
 
-	responseWithJson(writer, http.StatusCreated, ur)
+	responseWithJson(writer, http.StatusCreated, up)
 }
 
 // Basically the same as GetUser but adding a delete function
@@ -126,8 +126,8 @@ func (uh UserHandler) Update(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	var ur entity.UserResponse
-	err = json.NewDecoder(request.Body).Decode(&ur)
+	var up entity.UserPublic
+	err = json.NewDecoder(request.Body).Decode(&up)
 
 	// Error handling: When the Json file from the requested side cannot be assigned into updateUser
 	if err != nil {
@@ -135,7 +135,7 @@ func (uh UserHandler) Update(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	err = uh.db.UpdateUser(id, &ur)
+	err = uh.db.UpdateUser(id, &up)
 
 	if err.Error() == "user not found" {
 		responseWithJson(writer, http.StatusNotFound, map[string]string{"message": "User not found"})
@@ -147,7 +147,7 @@ func (uh UserHandler) Update(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	responseWithJson(writer, http.StatusOK, ur)
+	responseWithJson(writer, http.StatusOK, up)
 }
 
 func responseWithJson(writer http.ResponseWriter, status int, object interface{}) {

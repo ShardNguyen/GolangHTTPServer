@@ -7,8 +7,8 @@ type User struct {
 	name string
 }
 
-func (user *User) ConvertToResponse() (ur UserResponse, err error) {
-	ur = UserResponse{}
+func (user *User) ConvertToResponse() (ur UserPublic, err error) {
+	ur = UserPublic{}
 
 	// Convert ID
 	id, err := user.GetID()
@@ -23,7 +23,7 @@ func (user *User) ConvertToResponse() (ur UserResponse, err error) {
 	}
 
 	// Make Response to return
-	ur = UserResponse{
+	ur = UserPublic{
 		Id:   id,
 		Name: name,
 	}
