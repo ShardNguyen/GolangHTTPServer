@@ -10,38 +10,40 @@ type mapDatabase struct {
 	userData map[int]entity.User
 }
 
-var instance *mapDatabase
+var mapInstance *mapDatabase
 
-// Get instance of the map database.
-// If it exists, get that instance. If it doesn't, create a new instance of it and return that instance
+// Get mapInstance of the map database.
+// If it exists, get that mapInstance. If it doesn't, create a new mapInstance of it and return that mapInstance
 func GetMapDatabaseInstance() *mapDatabase {
-	// Check if instance is created
-	if instance == nil {
-		instance = &mapDatabase{
+	// Check if mapInstance is created
+	if mapInstance == nil {
+		mapInstance = &mapDatabase{
 			userData: make(map[int]entity.User),
 		}
 	}
 
-	return instance
+	return mapInstance
 }
 
-// Create data by ID in the map database.
-func (mapDB *mapDatabase) CreateUser(ur *entity.UserResponse) error {
-	newID := generateId(mapDB.userData)
-	ur.SetID(newID)
+// Create data by received JSON file and add user to the map database.
+func (mapDB *mapDatabase) CreateUser(up *entity.UserPublic) error {
+	// Check if id already exists in the map database
+	if _, ok := mapDB.userData[up.Id]; !ok {
+		return errors.New("id is already taken")
+	}
 
-	// Convert response to user data
-	newUser, err := ur.ConvertToUser()
+	// Convert public to private
+	newUser, err := up.ConvertToUser()
 	if err != nil {
 		return err
 	}
 
-	mapDB.userData[newID] = *newUser
+	mapDB.userData[up.Id] = *newUser
 	return nil
 }
 
-// Get data by ID in the map database and return the said data.
-// Return error if data is not retrievable
+// Get user by ID in the map database and return the said user.
+// Return error if id doesn't exist
 func (mapDB *mapDatabase) GetUser(id int) (u *entity.User, err error) {
 	user, ok := mapDB.userData[id]
 	if !ok {
@@ -51,23 +53,23 @@ func (mapDB *mapDatabase) GetUser(id int) (u *entity.User, err error) {
 	return &user, nil
 }
 
-// Get all of the data contained in the hash map
+// Get all of the data contained in the map database
 func (mapDB *mapDatabase) GetAllUsers() (uMap map[int]entity.User, err error) {
 	return mapDB.userData, nil
 }
 
 // Update data by ID in the map database with the response received from the user.
-func (mapDB *mapDatabase) UpdateUser(id int, ur *entity.UserResponse) error {
+func (mapDB *mapDatabase) UpdateUser(id int, up *entity.UserPublic) error {
 	// Find if user with said ID exists
 	if _, ok := mapDB.userData[id]; !ok {
 		return errors.New("user not found")
 	}
 
 	// Set ID for user response
-	ur.SetID(id)
+	up.SetID(id)
 
 	// Converting user response to user data
-	updatedUser, err := ur.ConvertToUser()
+	updatedUser, err := up.ConvertToUser()
 	if err != nil {
 		return errors.New("cannot edit this user")
 	}
@@ -85,17 +87,4 @@ func (mapDB *mapDatabase) DeleteUser(id int) error {
 
 	delete(mapDB.userData, id)
 	return nil
-}
-
-// Basically get the highest ID and add 1 to it
-func generateId(users map[int]entity.User) int {
-	var maxId int
-
-	for id := range users {
-		if id > maxId {
-			maxId = id
-		}
-	}
-
-	return maxId + 1
 }
