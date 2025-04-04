@@ -1,11 +1,11 @@
 package data
 
 import (
+	"GolangHTTPServer/model/entity"
 	"database/sql"
 	"fmt"
 	"os"
-
-	"GolangHTTPServer/pkg/entity"
+	"sync"
 
 	_ "github.com/lib/pq"
 )
@@ -15,20 +15,28 @@ type postgresDatabase struct {
 }
 
 var postgresInstance *postgresDatabase
+var mutexPostgres = &sync.Mutex{}
 
 // Get instance of PostgreSQL. If the instance doesn't exist, create a new instance and return the new instance. Otherwise, return the PostgreSQL instance
 func GetPostgreSQLInstance() (*postgresDatabase, error) {
+	mutexPostgres.Lock()
+
 	if postgresInstance == nil {
 		// Opens a connection to a Postgres Database using DATABASE URL
 		db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+
 		if err != nil {
 			fmt.Println(err)
 			return nil, err
 		}
+
 		postgresInstance = &postgresDatabase{
 			userData: db,
 		}
+
 	}
+
+	mutexPostgres.Unlock()
 	return postgresInstance, nil
 }
 

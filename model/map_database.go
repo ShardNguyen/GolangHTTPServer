@@ -1,9 +1,9 @@
 package data
 
 import (
+	"GolangHTTPServer/model/entity"
 	"errors"
-
-	"GolangHTTPServer/pkg/entity"
+	"sync"
 )
 
 type mapDatabase struct {
@@ -11,16 +11,16 @@ type mapDatabase struct {
 }
 
 var mapInstance *mapDatabase
+var onceMap = &sync.Once{}
 
 // Get mapInstance of the map database.
 // If it exists, get that mapInstance. If it doesn't, create a new mapInstance of it and return that mapInstance
 func GetMapDatabaseInstance() *mapDatabase {
-	// Check if mapInstance is created
-	if mapInstance == nil {
+	onceMap.Do(func() {
 		mapInstance = &mapDatabase{
 			userData: make(map[int]entity.User),
 		}
-	}
+	})
 
 	return mapInstance
 }
