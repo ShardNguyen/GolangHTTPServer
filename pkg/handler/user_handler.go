@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ShardNguyen/GolangCounter/pkg/data"
-	"github.com/ShardNguyen/GolangCounter/pkg/entity"
+	"GolangHTTPServer/pkg/data"
+	"GolangHTTPServer/pkg/entity"
+
 	"github.com/gorilla/mux"
 )
 
@@ -14,9 +15,9 @@ type UserHandler struct {
 	db data.Database
 }
 
-func NewUserHandler(db data.Database) *UserHandler {
+func NewUserHandler(db *data.Database) *UserHandler {
 	uh := new(UserHandler)
-	uh.db = db
+	uh.db = *db
 	return uh
 }
 
@@ -58,6 +59,7 @@ func (uh UserHandler) GetAll(writer http.ResponseWriter, request *http.Request) 
 
 	if err != nil {
 		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "Cannot get user data"})
+		return
 	}
 
 	// Convert all user in map to user responses
@@ -88,11 +90,11 @@ func (uh UserHandler) Create(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	// Tell the database to create a user
-	if err := uh.db.CreateUser(&up); err != nil {
+	err = uh.db.CreateUser(&up)
+	if err != nil {
 		responseWithJson(writer, http.StatusInternalServerError, map[string]string{"message": "Cannot convert to user"})
 		return
 	}
-
 	responseWithJson(writer, http.StatusCreated, up)
 }
 

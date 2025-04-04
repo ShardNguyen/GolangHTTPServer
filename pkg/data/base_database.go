@@ -1,6 +1,6 @@
 package data
 
-import "github.com/ShardNguyen/GolangCounter/pkg/entity"
+import "GolangHTTPServer/pkg/entity"
 
 type Database interface {
 	CreateUser(ur *entity.UserPublic) error

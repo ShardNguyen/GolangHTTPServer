@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ShardNguyen/GolangCounter/pkg/entity"
+	"GolangHTTPServer/pkg/entity"
+
 	_ "github.com/lib/pq"
 )
 
@@ -20,11 +21,10 @@ func GetPostgreSQLInstance() (*postgresDatabase, error) {
 	if postgresInstance == nil {
 		// Opens a connection to a Postgres Database using DATABASE URL
 		db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-
 		if err != nil {
+			fmt.Println(err)
 			return nil, err
 		}
-
 		postgresInstance = &postgresDatabase{
 			userData: db,
 		}
@@ -34,20 +34,24 @@ func GetPostgreSQLInstance() (*postgresDatabase, error) {
 
 // Create data by received JSON file and add user to the PostgreSQL database.
 func (postgresDB *postgresDatabase) CreateUser(up *entity.UserPublic) error {
-	queryString := fmt.Sprintf("INSERT INTO users (id, name) "+"VALUES (%d, %s)", up.Id, up.Name)
-	return postgresDB.userData.QueryRow(queryString).Scan(&up)
+	queryString := fmt.Sprintf("INSERT INTO users (name) "+"VALUES ('%s') RETURNING id", up.Name)
+	// Scan copy the ID created from SQL Database
+	// and pasted it into the id in User Public struct
+	err := postgresDB.userData.QueryRow(queryString).Scan(&up.Id)
+	return err
 }
 
 // Get user by ID in the Postgres database and return the said user.
 // Return error if the database returns no row.
 func (postgresDB *postgresDatabase) GetUser(id int) (*entity.User, error) {
-	queryString := fmt.Sprintf("SELECT * FROM users WHERE id = %d", id)
-
 	var up entity.UserPublic
-	// Scan through the postgres database and return the first data row that has the said id
-	err := postgresDB.userData.QueryRow(queryString).Scan(&up)
+	queryString := fmt.Sprintf("SELECT * FROM users WHERE id = %d;", id)
 
+	// The Scan function is used to copy values
+	// from the SQL database to the user's public struct
+	err := postgresDB.userData.QueryRow(queryString).Scan(&up.Id, &up.Name)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -57,19 +61,19 @@ func (postgresDB *postgresDatabase) GetUser(id int) (*entity.User, error) {
 
 // Get all of the data contained in the Postgres database
 func (postgresDB *postgresDatabase) GetAllUsers() (map[int]entity.User, error) {
-	rows, err := postgresDB.userData.Query("SELECT * FROM users")
-
+	rows, err := postgresDB.userData.Query("SELECT * FROM users;")
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
+	defer rows.Close()
 
 	uMap := make(map[int]entity.User)
+	var up entity.UserPublic
 
 	for rows.Next() {
-		var up entity.UserPublic
-
 		// Scan for user data, skip the current line if the scan returns error
-		err := rows.Scan(&up)
+		err := rows.Scan(&up.Id, &up.Name)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -90,13 +94,30 @@ func (postgresDB *postgresDatabase) GetAllUsers() (map[int]entity.User, error) {
 
 // Update data in the Postgres Database by ID and the response received from the user
 func (postgresDB *postgresDatabase) UpdateUser(id int, up *entity.UserPublic) error {
-	queryString := fmt.Sprintf("UPDATE users SET name = %s WHERE id = %d", up.Name, id)
-	return postgresDB.userData.QueryRow(queryString).Scan(&up)
+	queryString := fmt.Sprintf("UPDATE users SET name = %s WHERE id = %d;", up.Name, id)
+	_, err := postgresDB.userData.Exec(queryString)
+	return err
 }
 
 // Delete data in the Postgres Database by ID.
 func (postgresDB *postgresDatabase) DeleteUser(id int) error {
+	_, err := postgresDB.GetUser(id)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
 	queryString := fmt.Sprintf("DELETE FROM users WHERE id = %d", id)
-	_, err := postgresDB.userData.Exec(queryString)
-	return err
+	_, err = postgresDB.userData.Exec(queryString)
+
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+func (postgresDB *postgresDatabase) CloseConnection() {
+	postgresDB.userData.Close()
 }

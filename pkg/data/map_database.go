@@ -3,7 +3,7 @@ package data
 import (
 	"errors"
 
-	"github.com/ShardNguyen/GolangCounter/pkg/entity"
+	"GolangHTTPServer/pkg/entity"
 )
 
 type mapDatabase struct {
