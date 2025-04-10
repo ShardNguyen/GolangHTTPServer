@@ -1,8 +1,8 @@
-package handler
+package handlers
 
 import "net/http"
 
-type BaseHandler interface {
+type Handler interface {
 	Get(writer http.ResponseWriter, request *http.Request)
 	GetAll(writer http.ResponseWriter, request *http.Request)
 	Create(writer http.ResponseWriter, request *http.Request)

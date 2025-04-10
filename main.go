@@ -1,14 +1,11 @@
-// TO DO LIST
-// Figure out how to make an error logging for wrong password? (This one definitely got me not figuring it out for so long)
-
 package main
 
 import (
+	"GolangHTTPServer/controllers/handlers"
+	"GolangHTTPServer/models/database"
+	"GolangHTTPServer/models/database/postgresql"
 	"fmt"
 	"net/http"
-
-	"GolangHTTPServer/pkg/data"
-	"GolangHTTPServer/pkg/handler"
 
 	"github.com/gorilla/mux"
 )
@@ -16,17 +13,21 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-	var db data.Database
-	var h handler.BaseHandler
+	var db database.Database
+	var h handlers.Handler
 
-	db, err := data.GetPostgreSQLInstance()
+	db, err := postgresql.GetPostgresqlInstance()
+
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("Connection failed.")
 		return
 	}
 
-	h = handler.NewUserHandler(&db)
+	defer db.CloseConnection()
+	h = handlers.NewUserHandler(&db)
+
+	h = handlers.NewUserHandler(&db)
 
 	r.HandleFunc("/api/user/{id}", h.Get).Methods("GET")
 	r.HandleFunc("/api/users", h.GetAll).Methods("GET")
