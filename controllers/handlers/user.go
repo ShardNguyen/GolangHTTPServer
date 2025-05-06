@@ -46,7 +46,7 @@ func (uh *UserHandler) GetAll(writer http.ResponseWriter, request *http.Request)
 	controllers.RespondOK(writer, uSlice)
 }
 
-func (uh UserHandler) Create(writer http.ResponseWriter, request *http.Request) {
+func (uh *UserHandler) Create(writer http.ResponseWriter, request *http.Request) {
 	u, err := utilities.DecodeJsonFromRequest(request)
 
 	if err != nil {
@@ -64,7 +64,7 @@ func (uh UserHandler) Create(writer http.ResponseWriter, request *http.Request) 
 	controllers.RespondOK(writer, *u)
 }
 
-func (uh UserHandler) Delete(writer http.ResponseWriter, request *http.Request) {
+func (uh *UserHandler) Delete(writer http.ResponseWriter, request *http.Request) {
 	id, err := utilities.GetIDFromRequest(request)
 
 	if err != nil {
@@ -82,7 +82,7 @@ func (uh UserHandler) Delete(writer http.ResponseWriter, request *http.Request) 
 	controllers.RespondOK(writer, "User is deleted!")
 }
 
-func (uh UserHandler) Update(writer http.ResponseWriter, request *http.Request) {
+func (uh *UserHandler) Update(writer http.ResponseWriter, request *http.Request) {
 	id, err := utilities.GetIDFromRequest(request)
 
 	if err != nil {
